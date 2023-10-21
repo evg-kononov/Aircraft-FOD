@@ -81,6 +81,7 @@ def train(
             images = images.to(device)
             labels = labels.to(device, dtype=torch.float32)
 
+            # TODO: понять, как преобразются изображения меньшего размера (ведь нейронка обучалась на другом разрешении)
             prediction = model(images)
             loss = criterion(labels, prediction)
 
@@ -109,7 +110,7 @@ def train(
               )
         # -----------------------------------------------------------------
 
-        # ---------------------- Validaion --------------------------------
+        # ---------------------- Validation --------------------------------
         val_loss = 0.0
         model.eval()
         with torch.no_grad():
