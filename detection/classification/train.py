@@ -5,7 +5,6 @@ from dataset import *
 from training_loop import *
 from torchvision import transforms
 
-
 if __name__ == "__main__":
     root_path = f"C:/Users/conon/Documents/Datasets/cifar10/"
     train_path = os.path.join(root_path, "train")
@@ -18,7 +17,7 @@ if __name__ == "__main__":
     task = "multiclass"
     device = "cuda"
     num_epochs = 30
-    batch_size = 1024
+    batch_size = 32
     save_freq = 10
     learning_rate = 5e-6
     weight_decay = 1e-8
@@ -67,7 +66,6 @@ if __name__ == "__main__":
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
-
     train(
         train_dl,
         val_dl,
@@ -85,5 +83,3 @@ if __name__ == "__main__":
         num_classes=num_classes,
         threshold=0.5
     )
-
-

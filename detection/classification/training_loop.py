@@ -2,7 +2,38 @@ import wandb
 import torch
 import torchmetrics
 from tqdm import tqdm
+from typing import Union
 from dataset import *
+
+
+class Metrics:
+    def __init__(
+            self,
+            task: str,
+            threshold: float = 0.5,
+            num_classes: Union[int, None] = None,
+            device: Union[str, torch.device] = None
+    ):
+        self.metrics = {
+            "Accuracy": torchmetrics.Accuracy(task=task, threshold=threshold, num_classes=num_classes).to(device),
+            "Precision": torchmetrics.Precision(task=task, threshold=threshold, num_classes=num_classes).to(device),
+            "Recall": torchmetrics.Recall(task=task, threshold=threshold, num_classes=num_classes).to(device),
+            "F1": torchmetrics.F1Score(task=task, threshold=threshold, num_classes=num_classes).to(device),
+        }
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        for key in self.metrics:
+            self.metrics[key].update(preds, target)
+
+    def compute(self):
+        computed_metrics = dict()
+        for key in self.metrics:
+            computed_metrics[key] = self.metrics[key].compute().item()
+        return computed_metrics
+
+    def reset(self):
+        for key in self.metrics:
+            self.metrics[key].reset()
 
 
 def weights_ema(model_ema, model, decay=0.999):
@@ -37,22 +68,14 @@ def train(
     pbar = range(num_epochs)
     pbar = tqdm(pbar, initial=initial_epoch, dynamic_ncols=True)
 
-    accuracy = torchmetrics.Accuracy(task=task, threshold=threshold, num_classes=num_classes).to(device)
-    precision = torchmetrics.Precision(task=task, threshold=threshold, num_classes=num_classes).to(device)
-    recall = torchmetrics.Recall(task=task, threshold=threshold, num_classes=num_classes).to(device)
-    f1 = torchmetrics.F1Score(task=task, threshold=threshold, num_classes=num_classes).to(device)
+    train_metrics = Metrics(task=task, threshold=threshold, num_classes=num_classes, device=device)
+    val_metrics = Metrics(task=task, threshold=threshold, num_classes=num_classes, device=device)
 
     for epoch in range(num_epochs):
         epoch += initial_epoch
 
-        # ---------------------- Trainig ----------------------------------
-        train_metrics = {
-            "loss": 0.0,
-            "accuracy": 0.0,
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1": 0.0
-        }
+        # ---------------------- Training ----------------------------------
+        train_loss = 0.0
         model.train()
         for images, labels in train_dl:
             images = images.to(device)
@@ -69,37 +92,25 @@ def train(
                 weights_ema(model_ema, model, ema_decay)
 
             if task == "binary":
-                pass # TODO: сделать, чтобы правильно считались метрики
+                pass  # TODO: сделать, чтобы правильно считались метрики
             elif task == "multiclass":
                 labels = torch.argmax(labels, dim=1)
 
-            train_metrics["loss"] += loss
-            accuracy(prediction, labels)
-            precision(prediction, labels)
-            recall(prediction, labels)
-            f1(prediction, labels)
+            train_loss += loss
+            train_metrics.update(prediction, labels)
 
-        train_metrics["loss"] = train_metrics["loss"].item() / len(train_dl)
-        train_metrics["accuracy"] = accuracy.compute()
-        train_metrics["precision"] = precision.compute()
-        train_metrics["recall"] = recall.compute()
-        train_metrics["f1"] = f1.compute()
-        accuracy.reset()
-        precision.reset()
-        recall.reset()
-        f1.reset()
+        train_loss = train_loss.item() / len(train_dl)
+        computed_train_metrics = train_metrics.compute()
+        train_metrics.reset()
+
         print("TRAINING")
-        print(train_metrics["loss"], train_metrics["accuracy"], train_metrics["precision"], train_metrics["recall"], train_metrics["f1"])
+        print(computed_train_metrics["loss"], computed_train_metrics["accuracy"], computed_train_metrics["precision"],
+              computed_train_metrics["recall"], computed_train_metrics["f1"]
+              )
         # -----------------------------------------------------------------
 
         # ---------------------- Validaion --------------------------------
-        val_metrics = {
-            "loss": 0.0,
-            "accuracy": 0.0,
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1": 0.0
-        }
+        val_loss = 0.0
         model.eval()
         with torch.no_grad():
             for images, labels in val_dl:
@@ -109,44 +120,35 @@ def train(
                 prediction = model(images)
 
                 if task == "binary":
-                    pass # TODO: сделать, чтобы правильно считались метрики
+                    pass  # TODO: сделать, чтобы правильно считались метрики
                 elif task == "multiclass":
                     labels = torch.argmax(labels, dim=1)
 
-                val_metrics["loss"] += loss
-                accuracy(prediction, labels)
-                precision(prediction, labels)
-                recall(prediction, labels)
-                f1(prediction, labels)
+                val_loss += loss
+                val_metrics.update(prediction, labels)
 
-            val_metrics["loss"] = val_metrics["loss"].item() / len(train_dl)
-            val_metrics["accuracy"] = accuracy.compute()
-            val_metrics["precision"] = precision.compute()
-            val_metrics["recall"] = recall.compute()
-            val_metrics["f1"] = f1.compute()
-            accuracy.reset()
-            precision.reset()
-            recall.reset()
-            f1.reset()
+            val_loss = val_loss.item() / len(train_dl)
+            computed_val_metrics = val_metrics.compute()
+            val_metrics.reset()
+
         print("VALIDATION")
         print(val_metrics["accuracy"], val_metrics["precision"], val_metrics["recall"], val_metrics["f1"])
         # -----------------------------------------------------------------
 
         # ---------------------- Checkpoint -------------------------------
         if wandb and use_wandb:
+            log_dict = {
+                "Loss": train_loss,
+                "Loss (val)": val_loss,
+            }
+            log_dict.update(computed_train_metrics)
+
+            for key in computed_val_metrics:
+                computed_val_metrics[key + " (val)"] = computed_val_metrics.pop(key)
+            log_dict.update(computed_val_metrics)
+
             wandb.log(
-                {
-                    "Loss": train_metrics["loss"],
-                    "Accuracy": train_metrics["accuracy"],
-                    "Precision": train_metrics["precision"],
-                    "Recall": train_metrics["recall"],
-                    "F1": train_metrics["f1"],
-                    "Loss (val)": val_metrics["loss"],
-                    "Accuracy (val)": val_metrics["accuracy"],
-                    "Precision (val)": val_metrics["precision"],
-                    "Recall (val)": val_metrics["recall"],
-                    "F1 (val)": val_metrics["f1"],
-                },
+                log_dict,
                 step=epoch
             )
 
