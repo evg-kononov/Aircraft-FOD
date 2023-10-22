@@ -1,3 +1,5 @@
+import os
+
 import timm
 from torch import nn
 from torch.utils.data import DataLoader
@@ -22,7 +24,8 @@ if __name__ == "__main__":
     num_epochs = 30
     batch_size = 32
     save_freq = 10
-    learning_rate = 5e-6
+    #learning_rate = 5e-6
+    learning_rate = 5e-2
     weight_decay = 1e-8
     label_smoothing = 0.1
     #ema_decay = 0.9995  # TODO: добавить функцию, которая делает ema_decay
@@ -46,22 +49,20 @@ if __name__ == "__main__":
         root_dir=train_path,
         num_classes=num_classes,
         transform=transforms.ToTensor(),
-        target_transform=target_transform
     )
     val_ds = ImageDataset(
         labels_file=val_labels_path,
         root_dir=val_path,
         num_classes=num_classes,
         transform=transforms.ToTensor(),
-        target_transform=target_transform
     )
 
-    train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-    val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=True)
+    train_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=True, pin_memory=True)
+    val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False, pin_memory=True)
 
-    model = timm.create_model("fastvit_s12", num_classes=num_classes, in_chans=channels).to(device)
+    model = timm.create_model("efficientnet_b0", num_classes=num_classes, in_chans=channels).to(device)
     if ema_decay is not None:
-        model_ema = timm.create_model("fastvit_s12", num_classes=num_classes, in_chans=channels).to(device)
+        model_ema = timm.create_model("efficientnet_b0", num_classes=num_classes, in_chans=channels).to(device)
         model_ema.eval()
         weights_ema(model_ema, model, 0)
     else:

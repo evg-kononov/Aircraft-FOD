@@ -2,7 +2,7 @@ import wandb
 import torch
 import torchmetrics
 from tqdm import tqdm
-from typing import Union
+from typing import Union, Optional
 from dataset import *
 
 
@@ -12,13 +12,14 @@ class Metrics:
             task: str,
             threshold: float = 0.5,
             num_classes: Union[int, None] = None,
+            top_k: int = 1,
             device: Union[str, torch.device] = None
     ):
         self.metrics = {
-            "Accuracy": torchmetrics.Accuracy(task=task, threshold=threshold, num_classes=num_classes).to(device),
-            "Precision": torchmetrics.Precision(task=task, threshold=threshold, num_classes=num_classes).to(device),
-            "Recall": torchmetrics.Recall(task=task, threshold=threshold, num_classes=num_classes).to(device),
-            "F1": torchmetrics.F1Score(task=task, threshold=threshold, num_classes=num_classes).to(device),
+            "accuracy": torchmetrics.Accuracy(task=task, threshold=threshold, num_classes=num_classes, top_k=top_k).to(device),
+            "precision": torchmetrics.Precision(task=task, threshold=threshold, num_classes=num_classes, top_k=top_k).to(device),
+            "recall": torchmetrics.Recall(task=task, threshold=threshold, num_classes=num_classes, top_k=top_k).to(device),
+            "f1": torchmetrics.F1Score(task=task, threshold=threshold, num_classes=num_classes, top_k=top_k).to(device),
         }
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
@@ -65,9 +66,6 @@ def train(
         num_classes=None,
         threshold=0.5,
 ):
-    pbar = range(num_epochs)
-    pbar = tqdm(pbar, initial=initial_epoch, dynamic_ncols=True)
-
     train_metrics = Metrics(task=task, threshold=threshold, num_classes=num_classes, device=device)
     val_metrics = Metrics(task=task, threshold=threshold, num_classes=num_classes, device=device)
 
@@ -77,63 +75,66 @@ def train(
         # ---------------------- Training ----------------------------------
         train_loss = 0.0
         model.train()
-        for images, labels in train_dl:
-            images = images.to(device)
-            labels = labels.to(device, dtype=torch.float32)
+        with tqdm(total=len(train_dl), dynamic_ncols=True) as pbar:
+            pbar.set_description(f"Epoch {epoch}")
+            for images, labels in train_dl:
+                images = images.to(device)
+                labels = labels.to(device)
 
-            # TODO: понять, как преобразются изображения меньшего размера (ведь нейронка обучалась на другом разрешении)
-            prediction = model(images)
-            loss = criterion(labels, prediction)
+                # TODO: понять, как преобразются изображения меньшего размера (ведь нейронка обучалась на другом разрешении)
+                prediction = model(images)
+                loss = criterion(prediction, labels)
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-            if model_ema is not None:
-                weights_ema(model_ema, model, ema_decay)
+                if model_ema is not None:
+                    weights_ema(model_ema, model, ema_decay)
 
-            if task == "binary":
-                pass  # TODO: сделать, чтобы правильно считались метрики
-            elif task == "multiclass":
-                labels = torch.argmax(labels, dim=1)
+                train_loss += loss
+                train_metrics.update(prediction, labels)
 
-            train_loss += loss
-            train_metrics.update(prediction, labels)
+                pbar.set_postfix(loss=loss.item())
+                pbar.update()
+                pbar.refresh()
 
-        train_loss = train_loss.item() / len(train_dl)
-        computed_train_metrics = train_metrics.compute()
-        train_metrics.reset()
+            train_loss = train_loss.item() / len(train_dl)
+            computed_train_metrics = train_metrics.compute()
+            train_metrics.reset()
 
-        print("TRAINING")
-        print(computed_train_metrics["loss"], computed_train_metrics["accuracy"], computed_train_metrics["precision"],
-              computed_train_metrics["recall"], computed_train_metrics["f1"]
-              )
+            pbar.set_postfix(loss=train_loss, **computed_train_metrics)
+            pbar.update(n=0)
+            pbar.refresh()
         # -----------------------------------------------------------------
 
         # ---------------------- Validation --------------------------------
         val_loss = 0.0
         model.eval()
-        with torch.no_grad():
-            for images, labels in val_dl:
-                images = images.to(device)
-                labels = labels.to(device)
+        with tqdm(total=len(val_dl), dynamic_ncols=True) as pbar:
+            pbar.set_description(f"Epoch {epoch} (val)")
+            with torch.no_grad():
+                for images, labels in val_dl:
+                    images = images.to(device)
+                    labels = labels.to(device)
 
-                prediction = model(images)
+                    prediction = model(images)
+                    loss = criterion(prediction, labels)
 
-                if task == "binary":
-                    pass  # TODO: сделать, чтобы правильно считались метрики
-                elif task == "multiclass":
-                    labels = torch.argmax(labels, dim=1)
+                    val_loss += loss
+                    val_metrics.update(prediction, labels)
 
-                val_loss += loss
-                val_metrics.update(prediction, labels)
+                    pbar.set_postfix(loss=loss.item())
+                    pbar.update()
+                    pbar.refresh()
 
             val_loss = val_loss.item() / len(train_dl)
             computed_val_metrics = val_metrics.compute()
             val_metrics.reset()
 
-        print("VALIDATION")
-        print(val_metrics["accuracy"], val_metrics["precision"], val_metrics["recall"], val_metrics["f1"])
+            pbar.set_postfix(loss=val_loss, **computed_val_metrics)
+            pbar.update(n=0)
+            pbar.refresh()
         # -----------------------------------------------------------------
 
         # ---------------------- Checkpoint -------------------------------
