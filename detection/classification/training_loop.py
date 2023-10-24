@@ -157,6 +157,7 @@ def train(
             save_dict = {
                 "epoch": epoch,
                 "model": model.state_dict(),
+                "optimizer": optimizer.state_dict(),
                 "train_metrics": train_metrics,
                 "val_metrics": val_metrics
             }

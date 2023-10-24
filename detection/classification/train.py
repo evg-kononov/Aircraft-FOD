@@ -4,8 +4,10 @@ from torch.utils.data import DataLoader
 from dataset import *
 from training_loop import *
 from torchvision import transforms
+from config import *
 
 if __name__ == "__main__":
+    ckpt_path = None
     root_path = f"C:/Users/conon/Documents/Datasets/cifar10/"
     train_path = os.path.join(root_path, "train")
     val_path = os.path.join(root_path, "test")
@@ -13,6 +15,7 @@ if __name__ == "__main__":
     train_labels_path = os.path.join(root_path, "train_labels.csv")
     val_labels_path = os.path.join(root_path, "test_labels.csv")
 
+    use_wandb = False
     # Fine-tuning hyperparameters
     task = "multiclass"
     device = "cuda"
@@ -22,7 +25,8 @@ if __name__ == "__main__":
     learning_rate = 5e-6
     weight_decay = 1e-8
     label_smoothing = 0.1
-    ema_decay = 0.9995  # TODO: добавить функцию, которая делает ema_decay
+    #ema_decay = 0.9995  # TODO: добавить функцию, которая делает ema_decay
+    ema_decay = None
 
     # Dataset hyperparameters
     width = 32
@@ -66,6 +70,30 @@ if __name__ == "__main__":
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
+    wandb_run_id = None
+    if ckpt_path is not None:
+        print("Load model:", ckpt_path)
+        checkpoint = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+        initial_epoch = checkpoint["epoch"]
+        wandb_run_id = checkpoint.get("wandb_run_id", None)
+        model.load_state_dict(checkpoint["model"])
+        if ema_decay is not None:
+            model_ema.load_state_dict(checkpoint["model_ema"])
+        optimizer.load_state_dict(checkpoint["optimizer"])
+
+    if wandb and use_wandb:
+        config = dict(
+            learning_rate=learning_rate,
+            initial_epoch=initial_epoch,
+            num_epochs=num_epochs,
+            batch_size=batch_size,
+            weight_decay=weight_decay,
+            label_smoothing=label_smoothing,
+        )
+        wandb_init["config"].update(config)
+        wandb_init["id"] = wandb_run_id
+        wandb.init(**wandb_init)
+
     train(
         train_dl,
         val_dl,
@@ -76,9 +104,9 @@ if __name__ == "__main__":
         device,
         save_freq,
         initial_epoch=1,
-        use_wandb=False,
-        model_ema=None,
-        ema_decay=0.9995,
+        use_wandb=use_wandb,
+        model_ema=model_ema,
+        ema_decay=ema_decay,
         task=task,
         num_classes=num_classes,
         threshold=0.5
