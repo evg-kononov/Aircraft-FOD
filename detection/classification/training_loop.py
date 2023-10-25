@@ -65,6 +65,7 @@ def train(
         task="binary",
         num_classes=None,
         threshold=0.5,
+        **kwargs
 ):
     train_metrics = Metrics(task=task, threshold=threshold, num_classes=num_classes, device=device)
     val_metrics = Metrics(task=task, threshold=threshold, num_classes=num_classes, device=device)
@@ -74,7 +75,6 @@ def train(
 
         # ---------------------- Training ----------------------------------
         train_loss = 0.0
-        b = b
         model.train()
         with tqdm(total=len(train_dl), dynamic_ncols=True) as pbar:
             pbar.set_description(f"Epoch {epoch}")
