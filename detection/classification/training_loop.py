@@ -74,6 +74,7 @@ def train(
 
         # ---------------------- Training ----------------------------------
         train_loss = 0.0
+        b = b
         model.train()
         with tqdm(total=len(train_dl), dynamic_ncols=True) as pbar:
             pbar.set_description(f"Epoch {epoch}")
