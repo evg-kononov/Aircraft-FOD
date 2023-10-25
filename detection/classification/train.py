@@ -61,14 +61,14 @@ if __name__ == "__main__":
         root_dir=train_path,
         num_classes=args.num_classes,
         transform=transforms.ToTensor(),
-        target_transform=target_transform
+        #target_transform=target_transform
     )
     val_ds = ImageDataset(
         labels_file=val_labels_path,
         root_dir=val_path,
         num_classes=args.num_classes,
         transform=transforms.ToTensor(),
-        target_transform=target_transform
+        #target_transform=target_transform
     )
 
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
