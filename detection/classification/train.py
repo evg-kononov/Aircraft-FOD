@@ -18,7 +18,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--ckpt_path", type=str, default=None, help="Path to the checkpoints to resume training")
     parser.add_argument("--local-rank", type=int, default=0, help="Local rank for distributed training")
-    parser.add_argument("--use_wandb", action="store_true", help="Use weights and biases logging")
+    parser.add_argument("--use_wandb", action="store_false", help="Use weights and biases logging")
 
     # Fine-tuning hyperparameters
     parser.add_argument(
@@ -71,8 +71,8 @@ if __name__ == "__main__":
         #target_transform=target_transform
     )
 
-    train_dl = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
-    val_dl = DataLoader(val_ds, batch_size=args.batch_size, shuffle=True)
+    train_dl = DataLoader(val_ds, batch_size=args.batch_size, shuffle=True)
+    val_dl = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False)
 
     model = timm.create_model("fastvit_s12", num_classes=args.num_classes, in_chans=args.channels).to(device)
     if args.ema_decay is not None:

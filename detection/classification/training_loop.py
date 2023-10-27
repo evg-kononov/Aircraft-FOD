@@ -146,8 +146,7 @@ def train(
             }
             log_dict.update(computed_train_metrics)
 
-            for key in computed_val_metrics:
-                computed_val_metrics[key + " (val)"] = computed_val_metrics.pop(key)
+            computed_val_metrics = dict((key + " (val)", value) for (key, value) in computed_val_metrics.items())
             log_dict.update(computed_val_metrics)
 
             wandb.log(
@@ -156,6 +155,11 @@ def train(
             )
 
         if epoch % save_freq == 0:
+            try:
+                os.mkdir("checkpoint")
+            except OSError as error:
+                pass
+
             save_dict = {
                 "epoch": epoch,
                 "model": model.state_dict(),
@@ -171,3 +175,6 @@ def train(
                 save_dict["wandb_run_id"] = wandb.run.id
 
             torch.save(save_dict, f"checkpoint/{str(epoch).zfill(6)}.pt")
+
+    if wandb and use_wandb:
+        wandb.finish()
