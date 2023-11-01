@@ -6,6 +6,7 @@ from dataset import *
 from training_loop import *
 from torchvision import transforms
 from config import *
+from network import *
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Classifier trainer/fine-tuner")
@@ -18,7 +19,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--ckpt_path", type=str, default=None, help="Path to the checkpoints to resume training")
     parser.add_argument("--local-rank", type=int, default=0, help="Local rank for distributed training")
-    parser.add_argument("--use_wandb", action="store_false", help="Use weights and biases logging")
+    parser.add_argument("--use_wandb", action="store_true", help="Use weights and biases logging")
+    parser.add_argument("--model_name", type=str, default="fastvit_sa12", help="Name of model to instantiate from timm")
+    parser.add_argument("--pretrained", type=str, default="store_true", help="Name of model to instantiate from timm")
 
     # Fine-tuning hyperparameters
     parser.add_argument(
@@ -41,7 +44,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_classes", type=int, default=10, help="Number of classes of training images")
 
     # Augmentation hyperparameters
-    stochastic_depth_rate = [0.2, 0.4]
+    stochastic_depth_rate = 0.2
     data_augmentation = "RandAugment"
     alpha_mixup = 0.8
     alpha_cutmix = 1.0
@@ -50,33 +53,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
     train_path = os.path.join(args.data_path, "train")
     val_path = os.path.join(args.data_path, "val")
-
     train_labels_path = os.path.join(args.data_path, "train_labels.csv")
     val_labels_path = os.path.join(args.data_path, "val_labels.csv")
 
-    device = "cuda"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    train_ds = ImageDataset(
-        labels_file=train_labels_path,
-        root_dir=train_path,
-        num_classes=args.num_classes,
-        transform=transforms.ToTensor(),
-        #target_transform=target_transform
-    )
-    val_ds = ImageDataset(
-        labels_file=val_labels_path,
-        root_dir=val_path,
-        num_classes=args.num_classes,
-        transform=transforms.ToTensor(),
-        #target_transform=target_transform
-    )
-
-    train_dl = DataLoader(val_ds, batch_size=args.batch_size, shuffle=True)
-    val_dl = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False)
-
-    model = timm.create_model("fastvit_s12", num_classes=args.num_classes, in_chans=args.channels).to(device)
+    # ---------------------- Model ----------------------------------
+    model, model_cfg = fastvit_sa12(num_classes=args.numclasses, in_chans=args.channels, device=device)
     if args.ema_decay is not None:
-        model_ema = timm.create_model("fastvit_s12", num_classes=args.num_classes, in_chans=args.channels).to(device)
+        model_ema, _ = fastvit_sa12(num_classes=args.numclasses, in_chans=args.channels, device=device)
         model_ema.eval()
         weights_ema(model_ema, model, 0)
     else:
@@ -84,6 +69,39 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
+    # -----------------------------------------------------------------
+
+    # ---------------------- Dataset ----------------------------------
+    train_transform = transforms.Compose([
+        transforms.Resize(size=model_cfg["input_size"][1:], interpolation=model_cfg["interpolation"]),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=model_cfg["mean"], std=model_cfg["std"]),
+    ])
+
+    val_transform = transforms.Compose([
+        transforms.Resize(size=model_cfg["input_size"][1:], interpolation=model_cfg["interpolation"]),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=model_cfg["mean"], std=model_cfg["std"]),
+    ])
+
+    train_ds = ImageDataset(
+        labels_file=train_labels_path,
+        root_dir=train_path,
+        num_classes=args.num_classes,
+        transform=train_transform,
+        # target_transform=target_transform
+    )
+    val_ds = ImageDataset(
+        labels_file=val_labels_path,
+        root_dir=val_path,
+        num_classes=args.num_classes,
+        transform=val_transform,
+        # target_transform=target_transform
+    )
+
+    train_dl = DataLoader(val_ds, batch_size=args.batch_size, pin_memory=True, shuffle=True)
+    val_dl = DataLoader(val_ds, batch_size=args.batch_size, pin_memory=True, shuffle=False)
+    # -----------------------------------------------------------------
 
     wandb_run_id = None
     if args.ckpt_path is not None:

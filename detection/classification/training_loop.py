@@ -15,12 +15,22 @@ class Metrics:
             top_k: int = 1,
             device: Union[str, torch.device] = None
     ):
-        self.metrics = {
-            "accuracy": torchmetrics.Accuracy(task=task, threshold=threshold, num_classes=num_classes, top_k=top_k).to(device),
-            "precision": torchmetrics.Precision(task=task, threshold=threshold, num_classes=num_classes, top_k=top_k).to(device),
-            "recall": torchmetrics.Recall(task=task, threshold=threshold, num_classes=num_classes, top_k=top_k).to(device),
-            "f1": torchmetrics.F1Score(task=task, threshold=threshold, num_classes=num_classes, top_k=top_k).to(device),
-        }
+        if task == "binary":
+            self.metrics = {
+                "accuracy": torchmetrics.Accuracy(task=task, threshold=threshold, num_classes=num_classes,
+                                                  top_k=top_k).to(device),
+                "precision": torchmetrics.Precision(task=task, threshold=threshold, num_classes=num_classes,
+                                                    top_k=top_k).to(device),
+                "recall": torchmetrics.Recall(task=task, threshold=threshold, num_classes=num_classes, top_k=top_k).to(
+                    device),
+                "f1": torchmetrics.F1Score(task=task, threshold=threshold, num_classes=num_classes, top_k=top_k).to(
+                    device),
+            }
+        if task in ["multiclass", "multilabel"]:
+            self.metrics = {
+                "accuracy": torchmetrics.Accuracy(task=task, threshold=threshold, num_classes=num_classes,
+                                                  top_k=top_k).to(device),
+            }
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         for key in self.metrics:
@@ -58,6 +68,7 @@ def train(
         num_epochs,
         device,
         save_freq,
+        model_name,
         initial_epoch=1,
         use_wandb=False,
         model_ema=None,
@@ -174,7 +185,7 @@ def train(
             if wandb and use_wandb:
                 save_dict["wandb_run_id"] = wandb.run.id
 
-            torch.save(save_dict, f"checkpoint/{str(epoch).zfill(6)}.pt")
+            torch.save(save_dict, f"checkpoint/{model_name}_{str(epoch).zfill(6)}.pt")
 
     if wandb and use_wandb:
         wandb.finish()
