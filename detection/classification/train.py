@@ -21,7 +21,8 @@ if __name__ == "__main__":
     parser.add_argument("--local-rank", type=int, default=0, help="Local rank for distributed training")
     parser.add_argument("--use_wandb", action="store_true", help="Use weights and biases logging")
     parser.add_argument("--model_name", type=str, default="fastvit_sa12", help="Name of model to instantiate from timm")
-    parser.add_argument("--pretrained", type=str, default="store_true", help="Name of model to instantiate from timm")
+    parser.add_argument("--pretrained", type=str, default="store_true",
+                        help="Whether or not there is a pre-training of the timm model")
 
     # Fine-tuning hyperparameters
     parser.add_argument(
@@ -72,6 +73,7 @@ if __name__ == "__main__":
     # -----------------------------------------------------------------
 
     # ---------------------- Dataset ----------------------------------
+    # TODO: добавить возможность аугментации в transform
     train_transform = transforms.Compose([
         transforms.Resize(size=model_cfg["input_size"][1:], interpolation=model_cfg["interpolation"]),
         transforms.ToTensor(),
