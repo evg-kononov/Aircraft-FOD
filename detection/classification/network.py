@@ -2,18 +2,25 @@ import timm
 from torchvision.transforms.functional import InterpolationMode
 
 
+def vgg11_base(num_classes, in_chans, device):
+    model = timm.create_model("vgg11", pretrained=False, num_classes=num_classes, in_chans=in_chans).to(device)
+    model_cfg = model.default_cfg
+    model_cfg["interpolation"] = InterpolationMode.BILINEAR
+    return model, model_cfg
+
+
 def vgg11(num_classes, in_chans, device):
     model = timm.create_model("vgg11", pretrained=True, num_classes=num_classes, in_chans=in_chans).to(device)
 
     requires_grad = False
     for i, module in enumerate(model.named_parameters()):
         name, param = module
-        if "blocks.6" in name:
+        if "pre_logits" in name:
             requires_grad = True
         param.requires_grad = requires_grad
 
     model_cfg = model.default_cfg
-    model_cfg["interpolation"] = InterpolationMode.BICUBIC
+    model_cfg["interpolation"] = InterpolationMode.BILINEAR
     return model, model_cfg
 
 
