@@ -23,7 +23,7 @@ def save_frame_range(video_path, start_frame, stop_frame, step_frame,
             return
 
 
-path = r"C:\Users\conon\Desktop\РЕЗИНА\День\3.Крупный\333.Резина\333.mp4"
+path = r"C:\Users\conon\Desktop\АСФАЛЬТ\День\1.Мелкий\5.Асфальт\5_cutted.mp4"
 time = "day"  # "day" or "evening"
 dir = time + "_" + os.path.basename(path)[:-4]
 
