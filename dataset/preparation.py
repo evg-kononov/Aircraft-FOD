@@ -1,32 +1,34 @@
-import os.path
-import cv2
+import os
+import numpy as np
+from PIL import Image
+from tqdm import tqdm
 
 
-def save_frame_range(video_path, start_frame, stop_frame, step_frame,
-                     dir_path, basename, ext="png"):
-    cap = cv2.VideoCapture(video_path)
+def drop_duplicate_neighbors(root_path, threshold=0):
+    images = []
+    images_path = []
+    for path, folders, files in os.walk(root_path):
+        deleted_num = 0
+        for file in tqdm(files):
+            if "mp4" not in file:
+                file_path = os.path.join(path, file)
+                img = Image.open(file_path)
+                img = np.asarray(img) / 255
+                images.append(img)
+                images_path.append(file_path)
+            if len(images) > 2:
+                del images[0]
+                del images_path[0]
+            if len(images) == 2:
+                if images[0].shape != images[1].shape:
+                    continue
+                value = images[0] - images[1]
+                if abs(value.sum()) <= threshold:
+                    os.remove(images_path[0])
+                    del images[0]
+                    del images_path[0]
+                    deleted_num += 1
+        print(f"Number of deleted images: {deleted_num}")
 
-    if not cap.isOpened():
-        return
 
-    os.makedirs(dir_path, exist_ok=True)
-    base_path = os.path.join(dir_path, basename)
-
-    digit = len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))))
-
-    for n in range(start_frame, stop_frame, step_frame):
-        cap.set(cv2.CAP_PROP_POS_FRAMES, n)
-        ret, frame = cap.read()
-        if ret:
-            cv2.imwrite('{}_{}.{}'.format(base_path, str(n).zfill(digit), ext), frame)
-        else:
-            return
-
-
-path = r"C:\Users\conon\Desktop\АСФАЛЬТ\День\1.Мелкий\5.Асфальт\5_cutted.mp4"
-time = "day"  # "day" or "evening"
-dir = time + "_" + os.path.basename(path)[:-4]
-
-cap = cv2.VideoCapture(path)
-frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-save_frame_range(path, 0, frame_count, 1, dir, dir)
+root_path = r"C:\Users\admin\Desktop\DATASET_V2"
