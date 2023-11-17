@@ -1,4 +1,6 @@
 import os
+
+import cv2
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
@@ -31,4 +33,37 @@ def drop_duplicate_neighbors(root_path, threshold=0):
         print(f"Number of deleted images: {deleted_num}")
 
 
-root_path = r"C:\Users\admin\Desktop\DATASET_V2"
+def trim(im):
+    """
+    Этот алгоритм вывел я, удаляем именно черные рамки
+    :param im: image to crop
+    :return: cropped image
+    """
+    y1 = 0
+    y2 = im.size[1] - 1
+
+    while im.getpixel((0, y1)).count(0) >= 2:
+        y1 += 1
+
+    while im.getpixel((0, y2)).count(0) >= 2:
+        y2 -= 1
+
+    return im.crop((0, y1, im.size[0], y2))
+
+
+def apply_trim(root_path, save_path):
+    os.makedirs(save_path, exist_ok=True)
+
+    images_names = [i for i in os.listdir(root_path) if i.endswith(".png")]
+    for image_name in images_names:
+        image = Image.open(os.path.join(root_path, image_name))
+        image = trim(image)
+        image = np.array(image)
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(os.path.join(save_path, image_name), image)
+
+
+if __name__ == "__main__":
+    root_path = r"C:\Users\admin\Desktop\DATASET_V2\АСФАЛЬТ\День\1.Мелкий\5.Асфальт\0.normal"
+    save_path = r"./0.normal"
+    apply_trim(root_path, save_path)
