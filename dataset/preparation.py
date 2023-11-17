@@ -33,6 +33,24 @@ def drop_duplicate_neighbors(root_path, threshold=0):
         print(f"Number of deleted images: {deleted_num}")
 
 
+def trim2(im):
+    """
+    Этот алгоритм вывел я, удаляем именно черные рамки
+    :param im: image to crop
+    :return: cropped image
+    """
+    y1 = 0
+    y2 = im.size[1] - 1
+
+    while im.getpixel((400, y1)).count(0) >= 2:
+        y1 += 1
+
+    while im.getpixel((400, y2)).count(0) >= 2:
+        y2 -= 1
+
+    return im.crop((0, y1, im.size[0], y2))
+
+
 def trim(im):
     """
     Этот алгоритм вывел я, удаляем именно черные рамки
@@ -42,13 +60,22 @@ def trim(im):
     y1 = 0
     y2 = im.size[1] - 1
 
-    while im.getpixel((0, y1)).count(0) >= 2:
+    x1 = 0
+    x2 = im.size[0] - 1
+
+    while im.getpixel((400, y1)).count(0) >= 2 or sum(im.getpixel((400, y1))) <= 6:
         y1 += 1
 
-    while im.getpixel((0, y2)).count(0) >= 2:
+    while im.getpixel((400, y2)).count(0) >= 2 or sum(im.getpixel((400, y2))) <= 6:
         y2 -= 1
 
-    return im.crop((0, y1, im.size[0], y2))
+    while im.getpixel((x1, 400)).count(0) >= 2 or sum(im.getpixel((x1, 400))) <= 6:
+        x1 += 1
+
+    while im.getpixel((x2, 400)).count(0) >= 2 or sum(im.getpixel((x2, 400))) <= 6:
+        x2 -= 1
+
+    return im.crop((x1, y1, x2, y2))
 
 
 def apply_trim(root_path, save_path):
@@ -64,6 +91,8 @@ def apply_trim(root_path, save_path):
 
 
 if __name__ == "__main__":
-    root_path = r"C:\Users\admin\Desktop\DATASET_V2\АСФАЛЬТ\День\1.Мелкий\5.Асфальт\0.normal"
-    save_path = r"./0.normal"
+    root_path = r"C:\Users\admin\Desktop\DATASET_V1\ПЛАСТИК\Вечер\3.Крупный\1.abnormal"
+    save_path = r"./1.abnormal"
     apply_trim(root_path, save_path)
+    #img = Image.open(r"C:\Users\admin\Desktop\v2\АСФАЛЬТ\День\2.Средний\1.abnormal\day_55_cutted_046.png")
+    #print(img.getpixel((300, 0)))

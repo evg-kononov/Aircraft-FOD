@@ -23,8 +23,8 @@ def save_frame_range(video_path, start_frame, stop_frame, step_frame,
             return
 
 
-path = r"C:\Users\admin\Desktop\БЕТОН\Вечер\2.Средний\22.Бетон\22_cutted.mp4"
-time = "evening"  # "day" or "evening"
+path = r"C:\Users\admin\Desktop\DATASET_V1\111.Металл\111.mp4"
+time = "day"  # "day" or "evening"
 dir = time + "_" + os.path.basename(path)[:-4]
 
 cap = cv2.VideoCapture(path)
