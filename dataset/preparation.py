@@ -78,7 +78,7 @@ def trim(im):
     return im.crop((x1, y1, x2, y2))
 
 
-def apply_trim(root_path, save_path):
+def apply_trim2(root_path, save_path):
     os.makedirs(save_path, exist_ok=True)
 
     images_names = [i for i in os.listdir(root_path) if i.endswith(".png")]
@@ -90,9 +90,22 @@ def apply_trim(root_path, save_path):
         cv2.imwrite(os.path.join(save_path, image_name), image)
 
 
+def apply_trim(root_path):
+
+    for path, folders, files in os.walk(root_path):
+        for file in tqdm(files):
+            save_path = os.path.join(path, file)
+            image = Image.open(save_path)
+            image = trim(image)
+            image = np.array(image)
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(file, image)
+            os.replace(file, save_path)
+
+
 if __name__ == "__main__":
-    root_path = r"C:\Users\admin\Desktop\DATASET_V1\ПЛАСТИК\Вечер\3.Крупный\1.abnormal"
+    root_path = r"C:\Users\admin\PycharmProjects\Aircraft-FOD\dataset\Aircraft-FOD-DS-v3"
     save_path = r"./1.abnormal"
-    apply_trim(root_path, save_path)
-    #img = Image.open(r"C:\Users\admin\Desktop\v2\АСФАЛЬТ\День\2.Средний\1.abnormal\day_55_cutted_046.png")
+    apply_trim(root_path)
+    #img = Image.open(r"C:\Users\admin\PycharmProjects\Aircraft-FOD\dataset\Aircraft-FOD-DS-v3\АСФАЛЬТ\День\1.Мелкий\1.abnormal\day_5_cutted_203.png")
     #print(img.getpixel((300, 0)))
