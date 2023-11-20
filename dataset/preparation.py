@@ -103,9 +103,17 @@ def apply_trim(root_path):
             os.replace(file, save_path)
 
 
+def reduce_dataset(root_path):
+    files = [os.path.join(root_path, file) for file in os.listdir(root_path)]
+    for i in range(len(files)):
+        if i % 2 == 0:
+            os.remove(files[i])
+
+
 if __name__ == "__main__":
-    root_path = r"C:\Users\admin\PycharmProjects\Aircraft-FOD\dataset\Aircraft-FOD-DS-v3"
+    root_path = r"C:\Users\admin\Desktop\Aircraft-FOD-DS-v2-Day-Reduced\0.normal"
     save_path = r"./1.abnormal"
-    apply_trim(root_path)
+    #apply_trim(root_path)
+    # reduce_dataset(root_path)
     #img = Image.open(r"C:\Users\admin\PycharmProjects\Aircraft-FOD\dataset\Aircraft-FOD-DS-v3\АСФАЛЬТ\День\1.Мелкий\1.abnormal\day_5_cutted_203.png")
     #print(img.getpixel((300, 0)))
