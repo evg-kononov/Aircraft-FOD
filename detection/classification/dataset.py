@@ -3,14 +3,21 @@ import numpy as np
 import os
 import torch
 import torch.nn.functional as F
+from PIL import Image
 from torch.utils.data import Dataset
 
 
 class ImageDataset(Dataset):
-    def __init__(self, labels_file, root_dir, num_classes=None, transform=None, target_transform=None):
-        self.labels = pd.read_csv(labels_file)
-        self.num_classes = num_classes
-        self.root_dir = root_dir
+    def __init__(self, root_dir, num_classes=None, transform=None, target_transform=None):
+        self.labels = []
+        self.img_paths = []
+        for path, folder, files in os.walk(root_dir):
+            if len(folder) == 0:
+                folder = path.split("\\")[-1]
+                label = float(folder[0])
+            for file in files:
+                self.labels.append(label)
+                self.img_paths.append(os.path.join(path, file))
         self.transform = transform
         self.target_transform = target_transform
 
@@ -18,9 +25,9 @@ class ImageDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        img_path = os.path.join(self.root_dir, str(self.labels.iloc[idx, 0]) + ".npy")
-        image = np.load(img_path)
-        label = self.labels.iloc[idx, 1]
+        img_path = self.img_paths[idx]
+        image = Image.open(img_path)
+        label = torch.tensor([self.labels[idx]])
         if self.transform:
             image = self.transform(image)
         if self.target_transform:

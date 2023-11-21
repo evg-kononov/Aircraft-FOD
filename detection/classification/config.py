@@ -1,5 +1,4 @@
 wandb_config = {
-    "data": "Aircraft-FOD.Detection.BinaryClassification",
     "loss": "BCE"
 }
 wandb_init = {

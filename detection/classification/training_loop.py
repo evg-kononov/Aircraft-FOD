@@ -165,7 +165,7 @@ def train(
                 step=epoch
             )
 
-        if epoch % save_freq == 0:
+        if save_freq is not None and epoch % save_freq == 0:
             try:
                 os.mkdir("checkpoint")
             except OSError as error:
