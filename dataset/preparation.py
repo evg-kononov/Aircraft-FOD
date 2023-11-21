@@ -1,6 +1,7 @@
 import os
-
+import random
 import cv2
+import shutil
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
@@ -110,9 +111,35 @@ def reduce_dataset(root_path):
             os.remove(files[i])
 
 
+def train_val_split(root_path, train_path, val_path, train_size=0.8):
+    random.seed(42)
+
+    files = [file for file in os.listdir(root_path)]
+    classes = list(map(lambda x: x.split("_")[:2], files))
+    classes = np.unique(list(map(lambda x: "_".join(x), classes)))
+    for cls in classes:
+        cls_files = []
+        for file in files:
+            check = file.split("_")[:2]
+            check = "_".join(check)
+            if cls == check:
+                cls_files.append(os.path.join(root_path, file))
+        threshold = int(len(cls_files) * train_size)
+        random.shuffle(cls_files)
+        train = cls_files[:threshold]
+        val = cls_files[threshold:]
+        for file in train:
+            shutil.copy2(file, train_path)
+        for file in val:
+            shutil.copy2(file, val_path)
+
+
 if __name__ == "__main__":
-    root_path = r"C:\Users\admin\Desktop\Aircraft-FOD-DS-v2-Day-Reduced\0.normal"
+    root_path = r"C:\Users\admin\Desktop\Aircraft-FOD-DS-v2-Day\1.abnormal"
     save_path = r"./1.abnormal"
+    train_path = r"C:\Users\admin\Desktop\Aircraft-FOD-DS-v2-Day\training\1.abnormal"
+    val_path = r"C:\Users\admin\Desktop\Aircraft-FOD-DS-v2-Day\validation\1.abnormal"
+    train_val_split(root_path, train_path, val_path)
     #apply_trim(root_path)
     # reduce_dataset(root_path)
     #img = Image.open(r"C:\Users\admin\PycharmProjects\Aircraft-FOD\dataset\Aircraft-FOD-DS-v3\АСФАЛЬТ\День\1.Мелкий\1.abnormal\day_5_cutted_203.png")
