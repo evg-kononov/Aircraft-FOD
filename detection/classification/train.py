@@ -34,7 +34,7 @@ if __name__ == "__main__":
         help="Type of classification task"
     )
     parser.add_argument("--learning_rate", type=float, default=5e-2, help="Learning rate")  # 5e-6
-    parser.add_argument("--batch_size", type=int, default=128, help="Batch size during training")  # 64
+    parser.add_argument("--batch_size", type=int, default=64, help="Batch size during training")  # 64
     parser.add_argument("--num_epochs", type=int, default=2, help="Number of training epochs")  # 30
     parser.add_argument("--initial_epoch", type=int, default=1, help="Initialization epoch")  # 1
     parser.add_argument("--save_freq", type=int, default=None, help="Models save frequency")  # 10
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # ---------------------- Model ----------------------------------
-    model, model_cfg = vgg11(
+    model, model_cfg = efficientnet_b3(
         num_classes=args.num_classes,
         in_chans=args.channels,
         device=device,
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         pretrained=args.pretrained
     )
     if args.ema_decay is not None:
-        model_ema, _ = vgg11(
+        model_ema, _ = efficientnet_b3(
             num_classes=args.num_classes,
             in_chans=args.channels,
             device=device,
