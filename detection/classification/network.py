@@ -30,13 +30,13 @@ def efficientnet_b2(num_classes, in_chans, device, mode: Literal["training", "fi
     if mode == "training" and pretrained:
         for param in model.parameters():
             param.requires_grad = False
-        for param in model.head.parameters():
+        for param in model.classifier.parameters():
             param.requires_grad = True
     elif mode == "fine-tuning":
         requires_grad = False
         for i, module in enumerate(model.named_parameters()):
             name, param = module
-            if "blocks.6" in name:
+            if "blocks.1" in name:
                 requires_grad = True
             param.requires_grad = requires_grad
 
@@ -75,12 +75,12 @@ def fastvit_sa12(num_classes, in_chans, device, mode: Literal["training", "fine-
         for param in model.head.parameters():
             param.requires_grad = True
     elif mode == "fine-tuning":
-        for param in model.parameters():
-            param.requires_grad = False
-        for param in model.final_conv.parameters():
-            param.requires_grad = True
-        for param in model.head.parameters():
-            param.requires_grad = True
+        requires_grad = True
+        for i, module in enumerate(model.named_parameters()):
+            name, param = module
+            if "stages.2" in name:
+                requires_grad = True
+            param.requires_grad = requires_grad
 
     model_cfg = model.default_cfg
     model_cfg["interpolation"] = InterpolationMode.BICUBIC
