@@ -3,10 +3,10 @@ from torchvision.transforms.functional import InterpolationMode
 from typing import Literal
 
 
-def vgg11(num_classes, in_chans, device, mode: Literal["training", "fine-tuninig"], pretrained=True):
+def vgg11(num_classes, in_chans, device, mode: Literal["training", "feature-extraction", "fine-tuninig"], pretrained=True):
     model = timm.create_model("vgg11", pretrained=pretrained, num_classes=num_classes, in_chans=in_chans).to(device)
 
-    if mode == "training" and pretrained:
+    if mode == "feature-extraction" and pretrained:
         for param in model.parameters():
             param.requires_grad = False
         for param in model.head.parameters():
@@ -24,10 +24,10 @@ def vgg11(num_classes, in_chans, device, mode: Literal["training", "fine-tuninig
     return model, model_cfg
 
 
-def efficientnet_b2(num_classes, in_chans, device, mode: Literal["training", "fine-tuninig"], pretrained=True):
+def efficientnet_b2(num_classes, in_chans, device, mode: Literal["training", "feature-extraction", "fine-tuninig"], pretrained=True):
     model = timm.create_model("efficientnet_b2", pretrained=pretrained, num_classes=num_classes, in_chans=in_chans).to(device)
 
-    if mode == "training" and pretrained:
+    if mode == "feature-extraction" and pretrained:
         for param in model.parameters():
             param.requires_grad = False
         for param in model.classifier.parameters():
@@ -45,10 +45,10 @@ def efficientnet_b2(num_classes, in_chans, device, mode: Literal["training", "fi
     return model, model_cfg
 
 
-def efficientnet_b3(num_classes, in_chans, device, mode: Literal["training", "fine-tuninig"], pretrained=True):
+def efficientnet_b3(num_classes, in_chans, device, mode: Literal["training", "feature-extraction", "fine-tuninig"], pretrained=True):
     model = timm.create_model("efficientnet_b3", pretrained=pretrained, num_classes=num_classes, in_chans=in_chans).to(device)
 
-    if mode == "training" and pretrained:
+    if mode == "feature-extraction" and pretrained:
         for param in model.parameters():
             param.requires_grad = False
         for param in model.head.parameters():
@@ -66,10 +66,10 @@ def efficientnet_b3(num_classes, in_chans, device, mode: Literal["training", "fi
     return model, model_cfg
 
 
-def fastvit_sa12(num_classes, in_chans, device, mode: Literal["training", "fine-tuninig"], pretrained=True):
+def fastvit_sa12(num_classes, in_chans, device, mode: Literal["training", "feature-extraction", "fine-tuninig"], pretrained=True):
     model = timm.create_model("fastvit_sa12", pretrained=pretrained, num_classes=num_classes, in_chans=in_chans).to(device)
 
-    if mode == "training" and pretrained:
+    if mode == "feature-extraction" and pretrained:
         for param in model.parameters():
             param.requires_grad = False
         for param in model.head.parameters():
@@ -87,10 +87,10 @@ def fastvit_sa12(num_classes, in_chans, device, mode: Literal["training", "fine-
     return model, model_cfg
 
 
-def fastvit_sa24(num_classes, in_chans, device, mode: Literal["training", "fine-tuninig"], pretrained=True):
+def fastvit_sa24(num_classes, in_chans, device, mode: Literal["training", "feature-extraction", "fine-tuninig"], pretrained=True):
     model = timm.create_model("fastvit_sa24", pretrained=pretrained, num_classes=num_classes, in_chans=in_chans).to(device)
 
-    if mode == "training" and pretrained:
+    if mode == "feature-extraction" and pretrained:
         for param in model.parameters():
             param.requires_grad = False
         for param in model.head.parameters():
