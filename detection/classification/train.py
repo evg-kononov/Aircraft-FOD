@@ -14,7 +14,7 @@ if __name__ == "__main__":
     # Basic hyperparameters
     # parser.add_argument("data_path", type=str, help="Root directory for dataset")
     parser.add_argument(
-        "--data_path", type=str, default=r"C:\Users\admin\Desktop\Aircraft-FOD-DS-v2-Day-Binary-Reduced",
+        "--data_path", type=str, default=r"./Aircraft-FOD-DS-v2-Day-Binary-Reduced",
         help="Root directory for dataset"
     )
     parser.add_argument("--ckpt_path", type=str, default=None, help="Path to the checkpoints to resume training")
@@ -23,20 +23,20 @@ if __name__ == "__main__":
 
     # Training/Fine-tuning hyperparameters
     parser.add_argument(
-        "--mode", type=str, default="fine-tuning", choices=["training", "fine-tuning"],
+        "--mode", type=str, default="training", choices=["training", "fine-tuning"],
         help="Learning mode")
     parser.add_argument(
-        "--pretrained", action="store_false",
+        "--pretrained", action="store_true",
         help="Whether or not there is a pre-training of the timm model")
     parser.add_argument(
         "--task", type=str, default="binary", choices=["binary", "multiclass", "multilabel"],
         help="Type of classification task"
     )
-    parser.add_argument("--learning_rate", type=float, default=5e-3, help="Learning rate")  # 5e-6
-    parser.add_argument("--batch_size", type=int, default=64, help="Batch size during training")  # 64
-    parser.add_argument("--num_epochs", type=int, default=300, help="Number of training epochs")  # 30
+    parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")  # 5e-6
+    parser.add_argument("--batch_size", type=int, default=128, help="Batch size during training")  # 64
+    parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs")  # 30
     parser.add_argument("--initial_epoch", type=int, default=1, help="Initialization epoch")  # 1
-    parser.add_argument("--save_freq", type=int, default=None, help="Models save frequency")  # 10
+    parser.add_argument("--save_freq", type=int, default=50, help="Models save frequency")  # 10
     parser.add_argument("--weight_decay", type=float, default=1e-8, help="Weight decay coefficient") # 1e-8
     parser.add_argument("--label_smoothing", type=float, default=0, help="Label smoothing coefficient")  # 0.1
     parser.add_argument("--ema_decay", type=float, default=None, help="Exponential moving average coefficient")
@@ -61,8 +61,8 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # ---------------------- Model ----------------------------------
-    args.model_name = fastvit_sa24.__name__
-    model, model_cfg = fastvit_sa24(
+    args.model_name = efficientnet_b2.__name__ + "_" + args.mode
+    model, model_cfg = efficientnet_b2(
         num_classes=args.num_classes,
         in_chans=args.channels,
         device=device,
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         pretrained=args.pretrained
     )
     if args.ema_decay is not None:
-        model_ema, _ = fastvit_sa24(
+        model_ema, _ = efficientnet_b2(
             num_classes=args.num_classes,
             in_chans=args.channels,
             device=device,
@@ -108,6 +108,7 @@ if __name__ == "__main__":
         transform=train_transform,
         # target_transform=target_transform
     )
+    
     val_ds = ImageDataset(
         root_dir=val_path,
         num_classes=args.num_classes,
@@ -115,8 +116,8 @@ if __name__ == "__main__":
         # target_transform=target_transform
     )
 
-    train_dl = DataLoader(train_ds, batch_size=args.batch_size, pin_memory=True, shuffle=True, num_workers=4, persistent_workers=True)
-    val_dl = DataLoader(val_ds, batch_size=args.batch_size, pin_memory=True, shuffle=False, num_workers=4, persistent_workers=True)
+    train_dl = DataLoader(train_ds, batch_size=args.batch_size, pin_memory=True, shuffle=True, num_workers=10, persistent_workers=True)
+    val_dl = DataLoader(val_ds, batch_size=args.batch_size, pin_memory=True, shuffle=False, num_workers=6, persistent_workers=True)
     # -----------------------------------------------------------------
 
     wandb_run_id = None
@@ -124,7 +125,8 @@ if __name__ == "__main__":
         print("Load model:", args.ckpt_path)
         checkpoint = torch.load(args.ckpt_path, map_location=lambda storage, loc: storage)
         args.initial_epoch = checkpoint["epoch"]
-        wandb_run_id = checkpoint.get("wandb_run_id", None)
+        if args.mode != "fine-tuning" or "fine-tuning" in args.ckpt_path:
+            wandb_run_id = checkpoint.get("wandb_run_id", None)
         model.load_state_dict(checkpoint["model"])
         if args.ema_decay is not None:
             model_ema.load_state_dict(checkpoint["model_ema"])
@@ -134,6 +136,7 @@ if __name__ == "__main__":
         wandb_init["config"].update(args.__dict__)
         wandb_init["id"] = wandb_run_id
         wandb.init(**wandb_init)
+        
     import time
     t1 = time.perf_counter()
     train(

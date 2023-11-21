@@ -13,7 +13,7 @@ class ImageDataset(Dataset):
         self.img_paths = []
         for path, folder, files in os.walk(root_dir):
             if len(folder) == 0:
-                folder = path.split("\\")[-1]
+                folder = path.split("/")[-1]
                 label = float(folder[0])
             for file in files:
                 self.labels.append(label)
