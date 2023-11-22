@@ -34,7 +34,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")  # 5e-6
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size during training")  # 64
-    parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs")  # 30
+    parser.add_argument("--num_epochs", type=int, default=300, help="Number of training epochs")  # 30
     parser.add_argument("--initial_epoch", type=int, default=1, help="Initialization epoch")  # 1
     parser.add_argument("--save_freq", type=int, default=50, help="Models save frequency")  # 10
     parser.add_argument("--weight_decay", type=float, default=0, help="Weight decay coefficient") # 1e-8
@@ -61,8 +61,8 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # ---------------------- Model ----------------------------------
-    args.model_name = fastvit_sa12.__name__ + "_" + args.mode
-    model, model_cfg = fastvit_sa12(
+    args.model_name = fastvit_sa24.__name__ + "_" + args.mode
+    model, model_cfg = fastvit_sa24(
         num_classes=args.num_classes,
         in_chans=args.channels,
         device=device,
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         pretrained=args.pretrained
     )
     if args.ema_decay is not None:
-        model_ema, _ = fastvit_sa12(
+        model_ema, _ = fastvit_sa24(
             num_classes=args.num_classes,
             in_chans=args.channels,
             device=device,
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     if args.ckpt_path is not None:
         print("Load model:", args.ckpt_path)
         checkpoint = torch.load(args.ckpt_path, map_location=lambda storage, loc: storage)
-        args.initial_epoch = checkpoint["epoch"]
+        args.initial_epoch = checkpoint["epoch"] + 1
         if args.mode != "fine-tuning" or "fine-tuning" in args.ckpt_path:
             wandb_run_id = checkpoint.get("wandb_run_id", None)
         model.load_state_dict(checkpoint["model"])
