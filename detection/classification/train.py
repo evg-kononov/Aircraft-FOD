@@ -17,33 +17,33 @@ if __name__ == "__main__":
         "--data_path", type=str, default=r"./Aircraft-FOD-DS-v2-Day-Binary-Reduced",
         help="Root directory for dataset"
     )
-    parser.add_argument("--ckpt_path", type=str, default=None, help="Path to the checkpoints to resume training")
+    parser.add_argument("--ckpt_path", type=str, default=r"./checkpoint/fastvit_sa24_feature-extraction_000100.pt", help="Path to the checkpoints to resume training")
     parser.add_argument("--local-rank", type=int, default=0, help="Local rank for distributed training")
     parser.add_argument("--use_wandb", action="store_true", help="Use weights and biases logging")
 
     # Training/Fine-tuning hyperparameters
     parser.add_argument(
-        "--mode", type=str, default="training", choices=["training", "feature-extraction", "fine-tuning"],
+        "--mode", type=str, default="fine-tuning", choices=["training", "feature-extraction", "fine-tuning"],
         help="Learning mode")
     parser.add_argument(
-        "--pretrained", action="store_true",
+        "--pretrained", action="store_false",
         help="Whether or not there is a pre-training of the timm model")
     parser.add_argument(
         "--task", type=str, default="binary", choices=["binary", "multiclass", "multilabel"],
         help="Type of classification task"
     )
-    parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")  # 5e-6
+    parser.add_argument("--learning_rate", type=float, default=5e-6, help="Learning rate")  # 5e-6
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size during training")  # 64
-    parser.add_argument("--num_epochs", type=int, default=300, help="Number of training epochs")  # 30
+    parser.add_argument("--num_epochs", type=int, default=30, help="Number of training epochs")  # 30
     parser.add_argument("--initial_epoch", type=int, default=1, help="Initialization epoch")  # 1
-    parser.add_argument("--save_freq", type=int, default=50, help="Models save frequency")  # 10
-    parser.add_argument("--weight_decay", type=float, default=0, help="Weight decay coefficient") # 1e-8
+    parser.add_argument("--save_freq", type=int, default=10, help="Models save frequency")  # 10
+    parser.add_argument("--weight_decay", type=float, default=1e-8, help="Weight decay coefficient") # 1e-8
     parser.add_argument("--label_smoothing", type=float, default=0, help="Label smoothing coefficient")  # 0.1
     parser.add_argument("--ema_decay", type=float, default=None, help="Exponential moving average coefficient")
 
     # Dataset hyperparameters
     # parser.add_argument("--width", type=int, default=288, help="Width of training images")
-    # parser.add_argument("--height", type=int, default=288, help="Height of training images")
+    # parser.add_argumфent("--height", type=int, default=288, help="Height of training images")
     parser.add_argument("--channels", type=int, default=3, help="Channels of training images")
     parser.add_argument("--num_classes", type=int, default=1, help="Number of classes of training images")
 
